@@ -1,0 +1,936 @@
+SGLS BACKEND - FUNÇÕES E ENDPOINTS
+
+Base da API:
+http://localhost:5150/api
+
+Autenticação:
+Rotas protegidas utilizam:
+Authorization: Bearer {token}
+
+==================================================
+1. AUTENTICAÇÃO DE USUÁRIOS INTERNOS
+==================================================
+
+Login de usuário interno
+
+Caminho - /auth/login
+Método - POST
+Autenticação - Não exige token
+
+Entrada:
+{
+  "email": "admin@sgls.com",
+  "senha": "123456"
+}
+
+Saída - 200:
+{
+  "token": "jwt-token",
+  "expiracao": "2026-10-26T23:00:00Z",
+  "tipoAcesso": "InternalUser",
+  "perfil": "Admin"
+}
+
+Saída - 401:
+{
+  "message": "Usuário ou senha inválidos"
+}
+
+
+==================================================
+2. AUTENTICAÇÃO DE CLIENTES
+==================================================
+
+Login de cliente
+
+Caminho - /v1/auth/cliente/login
+Método - POST
+Autenticação - Não exige token
+
+Entrada:
+{
+  "email": "cliente@email.com",
+  "senha": "123456"
+}
+
+Saída - 200:
+{
+  "token": "jwt-token",
+  "expiracao": "2026-10-26T23:00:00Z",
+  "tipoAcesso": "Client"
+}
+
+Saída - 401:
+{
+  "message": "E-mail ou senha inválidos."
+}
+
+
+==================================================
+3. CLIENTES
+==================================================
+
+Cadastrar cliente
+
+Caminho - /clientes/cadastro
+Método - POST
+Autenticação - Não exige token
+
+Entrada:
+{
+  "nome": "Fulano da Silva",
+  "email": "fulano@email.com",
+  "telefone": "(85) 99999-9999",
+  "senha": "123456"
+}
+
+Saída - 201:
+{
+  "id": "guid-do-cliente",
+  "nome": "Fulano da Silva",
+  "email": "fulano@email.com",
+  "telefone": "(85) 99999-9999",
+  "message": "Cliente cadastrado com sucesso."
+}
+
+Saída - 400:
+{
+  "message": "A senha deve ter pelo menos 6 caracteres."
+}
+
+Saída - 409:
+{
+  "message": "Já existe um cliente cadastrado com este e-mail."
+}
+
+
+Consultar meu perfil
+
+Caminho - /clientes/me
+Método - GET
+Autenticação - Cliente autenticado
+
+Entrada:
+Nenhuma
+
+Saída - 200:
+{
+  "id": "guid-do-cliente",
+  "nome": "Fulano da Silva",
+  "email": "fulano@email.com",
+  "telefone": "(85) 99999-9999"
+}
+
+Saída - 404:
+{
+  "message": "Cliente não encontrado."
+}
+
+
+Atualizar meu perfil
+
+Caminho - /clientes/me
+Método - PUT
+Autenticação - Cliente autenticado
+
+Entrada:
+{
+  "nome": "Fulano Atualizado",
+  "email": "novo@email.com",
+  "telefone": "(85) 98888-8888",
+  "senha": "novaSenha123"
+}
+
+Observação:
+A senha pode ser enviada vazia ou omitida para permanecer inalterada.
+
+Saída - 200:
+{
+  "id": "guid-do-cliente",
+  "nome": "Fulano Atualizado",
+  "email": "novo@email.com",
+  "telefone": "(85) 98888-8888",
+  "message": "Dados do cliente atualizados com sucesso."
+}
+
+Saída - 409:
+{
+  "message": "Já existe um cliente cadastrado com este e-mail."
+}
+
+
+Excluir minha conta
+
+Caminho - /clientes/me
+Método - DELETE
+Autenticação - Cliente autenticado
+
+Entrada:
+Nenhuma
+
+Saída - 200:
+{
+  "message": "Conta do cliente removida com sucesso."
+}
+
+
+==================================================
+4. PEDIDOS DO CLIENTE
+==================================================
+
+Criar pedido
+
+Caminho - /clientes/pedidos
+Método - POST
+Autenticação - Cliente autenticado
+
+Entrada:
+{
+  "itens": [
+    {
+      "produtoId": "guid-do-produto",
+      "quantidade": 2
+    }
+  ]
+}
+
+Processamento interno:
+- Valida se o pedido possui itens.
+- Valida se os produtos existem.
+- Valida se os produtos estão ativos.
+- Valida se existe estoque suficiente.
+- Calcula o valor total.
+- Vincula o pedido ao cliente autenticado.
+- Cria o pedido com status Pendente.
+
+Saída - 200:
+{
+  "id": "guid-do-pedido",
+  "message": "Pedido do cliente criado com sucesso."
+}
+
+Saída - 400:
+{
+  "message": "Estoque insuficiente para o produto Camisa Polo."
+}
+
+
+Listar meus pedidos
+
+Caminho - /clientes/pedidos
+Método - GET
+Autenticação - Cliente autenticado
+
+Entrada:
+Nenhuma
+
+Saída - 200:
+[
+  {
+    "id": "guid-do-pedido",
+    "clienteId": "guid-do-cliente",
+    "dataPedido": "2026-10-26T12:30:00Z",
+    "status": "Pendente",
+    "valorTotal": 299.90,
+    "itens": [
+      {
+        "produtoId": "guid-do-produto",
+        "quantidade": 2,
+        "precoUnitario": 149.95
+      }
+    ]
+  }
+]
+
+
+Consultar pedido específico
+
+Caminho - /clientes/pedidos/{id}
+Método - GET
+Autenticação - Cliente autenticado
+
+Entrada:
+Parâmetro da URL:
+id = guid-do-pedido
+
+Saída - 200:
+{
+  "id": "guid-do-pedido",
+  "clienteId": "guid-do-cliente",
+  "dataPedido": "2026-10-26T12:30:00Z",
+  "status": "Pendente",
+  "valorTotal": 299.90,
+  "itens": [
+    {
+      "produtoId": "guid-do-produto",
+      "quantidade": 2,
+      "precoUnitario": 149.95,
+      "produto": {
+        "nome": "Camisa Polo",
+        "preco": 149.95
+      }
+    }
+  ]
+}
+
+Saída - 404:
+{
+  "message": "Você não possui acesso a este pedido"
+}
+
+
+Finalizar pedido
+
+Caminho - /clientes/pedidos/{id}/finalizar
+Método - POST
+Autenticação - Cliente autenticado
+
+Entrada:
+Parâmetro da URL:
+id = guid-do-pedido
+
+Processamento interno:
+- Confirma que o pedido pertence ao cliente.
+- Confirma que o pedido está Pendente.
+- Remove os produtos do estoque.
+- Registra a movimentação de saída.
+- Altera o status para Finalizado.
+
+Saída - 200:
+{
+  "message": "Pedido finalizado com sucesso."
+}
+
+Saída - 400:
+{
+  "message": "Este pedido não está pendente"
+}
+
+
+Cancelar pedido
+
+Caminho - /clientes/pedidos/{id}/cancelar
+Método - POST
+Autenticação - Cliente autenticado
+
+Entrada:
+Parâmetro da URL:
+id = guid-do-pedido
+
+Processamento interno:
+- Confirma que o pedido pertence ao cliente.
+- Altera o status para Cancelado.
+- Se o pedido já estava finalizado, devolve os produtos ao estoque.
+- Registra a movimentação de entrada.
+
+Saída - 200:
+{
+  "message": "Pedido cancelado com sucesso."
+}
+
+
+==================================================
+5. PRODUTOS
+==================================================
+
+Listar produtos públicos
+
+Caminho - /produtos/publicos
+Método - GET
+Autenticação - Não exige token
+
+Entrada:
+Nenhuma
+
+Saída - 200:
+[
+  {
+    "id": "guid-do-produto",
+    "nome": "Camisa Polo",
+    "descricao": "Camisa polo de algodão",
+    "preco": 149.90,
+    "estoque": 20,
+    "ativo": true,
+    "categoriaId": "guid-da-categoria",
+    "categoriaNome": "Camisas",
+    "imagemId": "guid-da-imagem"
+  }
+]
+
+
+Listar produtos internos
+
+Caminho - /produtos
+Método - GET
+Autenticação - Usuário interno Admin ou Vendedor
+
+Entrada:
+Nenhuma
+
+Saída - 200:
+[
+  {
+    "id": "guid-do-produto",
+    "nome": "Camisa Polo",
+    "descricao": "Camisa polo de algodão",
+    "preco": 149.90,
+    "estoque": 20,
+    "ativo": true,
+    "categoriaId": "guid-da-categoria",
+    "categoriaNome": "Camisas",
+    "imagemId": null
+  }
+]
+
+
+Consultar produto
+
+Caminho - /produtos/{id}
+Método - GET
+Autenticação - Usuário interno Admin ou Vendedor
+
+Saída - 200:
+{
+  "id": "guid-do-produto",
+  "nome": "Camisa Polo",
+  "descricao": "Camisa polo de algodão",
+  "preco": 149.90,
+  "estoque": 20,
+  "ativo": true,
+  "categoriaId": "guid-da-categoria",
+  "categoriaNome": "Camisas",
+  "imagemId": null
+}
+
+
+Criar produto
+
+Caminho - /produtos
+Método - POST
+Autenticação - Usuário interno Admin ou Vendedor
+
+Entrada:
+{
+  "nome": "Camisa Polo",
+  "descricao": "Camisa polo de algodão",
+  "preco": 149.90,
+  "estoque": 20,
+  "categoriaId": "guid-da-categoria"
+}
+
+Saída - 201:
+{
+  "id": "guid-do-produto",
+  "nome": "Camisa Polo",
+  "preco": 149.90,
+  "estoque": 20,
+  "ativo": true
+}
+
+
+Atualizar produto
+
+Caminho - /produtos
+Método - PUT
+Autenticação - Usuário interno Admin ou Vendedor
+
+Entrada:
+{
+  "id": "guid-do-produto",
+  "nome": "Camisa Polo Premium",
+  "descricao": "Nova descrição",
+  "preco": 179.90,
+  "estoque": 25,
+  "ativo": true,
+  "categoriaId": "guid-da-categoria"
+}
+
+Saída - 200:
+Sem conteúdo.
+
+
+Remover produto
+
+Caminho - /produtos/{id}
+Método - DELETE
+Autenticação - Administrador
+
+Saída - 200:
+Sem conteúdo.
+
+
+==================================================
+6. CATEGORIAS
+==================================================
+
+Listar categorias
+
+Caminho - /categorias
+Método - GET
+Autenticação - Usuário interno
+
+Saída - 200:
+[
+  {
+    "id": "guid-da-categoria",
+    "nome": "Camisas",
+    "ativa": true
+  }
+]
+
+Observação:
+- Administrador visualiza todas.
+- Vendedor visualiza somente categorias ativas.
+- Marketing não possui acesso aos dados.
+
+
+Criar categoria
+
+Caminho - /categorias
+Método - POST
+Autenticação - Administrador
+
+Entrada:
+{
+  "nome": "Camisas"
+}
+
+Saída - 201:
+{
+  "id": "guid-da-categoria",
+  "nome": "Camisas",
+  "ativa": true
+}
+
+
+Atualizar categoria
+
+Caminho - /categorias
+Método - PUT
+Autenticação - Administrador
+
+Entrada:
+{
+  "id": "guid-da-categoria",
+  "nome": "Camisas Masculinas",
+  "ativa": true
+}
+
+Saída - 204:
+Sem conteúdo.
+
+
+Desativar categoria
+
+Caminho - /categorias/{id}
+Método - DELETE
+Autenticação - Administrador
+
+Saída - 204:
+Sem conteúdo.
+
+
+==================================================
+7. ESTOQUE
+==================================================
+
+Registrar entrada no estoque
+
+Caminho - /estoque/entrada
+Método - POST
+Autenticação - Administrador ou Vendedor
+
+Entrada:
+{
+  "produtoId": "guid-do-produto",
+  "quantidade": 10,
+  "observacao": "Reposição de estoque"
+}
+
+Saída - 200:
+Sem conteúdo.
+
+
+Registrar saída no estoque
+
+Caminho - /estoque/saida
+Método - POST
+Autenticação - Administrador ou Vendedor
+
+Entrada:
+{
+  "produtoId": "guid-do-produto",
+  "quantidade": 2,
+  "observacao": "Venda presencial"
+}
+
+Saída - 200:
+Sem conteúdo.
+
+
+==================================================
+8. PEDIDOS INTERNOS
+==================================================
+
+Criar pedido interno
+
+Caminho - /pedidos
+Método - POST
+Autenticação - Administrador ou Vendedor
+
+Entrada:
+{
+  "itens": [
+    {
+      "produtoId": "guid-do-produto",
+      "quantidade": 2
+    }
+  ]
+}
+
+Saída - 200:
+{
+  "id": "guid-do-pedido",
+  "message": "Pedido criado com sucesso."
+}
+
+
+Listar pedidos internos
+
+Caminho - /pedidos
+Método - GET
+Autenticação - Administrador ou Vendedor
+
+Saída - 200:
+[
+  {
+    "id": "guid-do-pedido",
+    "usuarioId": "guid-do-usuario",
+    "status": "Pendente",
+    "valorTotal": 299.90,
+    "dataPedido": "2026-10-26T12:30:00Z"
+  }
+]
+
+
+Consultar pedido interno
+
+Caminho - /pedidos/{id}
+Método - GET
+Autenticação - Administrador ou Vendedor
+
+Saída - 200:
+{
+  "id": "guid-do-pedido",
+  "status": "Pendente",
+  "valorTotal": 299.90,
+  "itens": []
+}
+
+
+Finalizar pedido interno
+
+Caminho - /pedidos/{id}/finalizar
+Método - POST
+Autenticação - Administrador ou Vendedor
+
+Saída - 200:
+{
+  "message": "Pedido finalizado com sucesso."
+}
+
+
+Cancelar pedido interno
+
+Caminho - /pedidos/{id}/cancelar
+Método - POST
+Autenticação - Administrador
+
+Saída - 200:
+{
+  "message": "Pedido cancelado com sucesso."
+}
+
+
+==================================================
+9. USUÁRIOS INTERNOS
+==================================================
+
+Listar usuários
+
+Caminho - /usuarios
+Método - GET
+Autenticação - Administrador
+
+Saída - 200:
+[
+  {
+    "id": "guid-do-usuario",
+    "nome": "Administrador",
+    "email": "admin@sgls.com",
+    "perfil": "Admin",
+    "ativo": true
+  }
+]
+
+
+Consultar usuário
+
+Caminho - /usuarios/{id}
+Método - GET
+Autenticação - Administrador
+
+Saída - 200:
+{
+  "id": "guid-do-usuario",
+  "nome": "Administrador",
+  "email": "admin@sgls.com",
+  "perfil": "Admin",
+  "ativo": true
+}
+
+
+Criar usuário
+
+Caminho - /usuarios
+Método - POST
+Autenticação - Atualmente permite acesso anônimo
+
+Entrada:
+{
+  "nome": "Funcionário",
+  "email": "funcionario@sgls.com",
+  "senha": "123456",
+  "perfil": "Vendedor"
+}
+
+Saída - 201:
+{
+  "id": "guid-do-usuario",
+  "message": "Usuário criado com sucesso!"
+}
+
+
+Atualizar usuário
+
+Caminho - /usuarios
+Método - PUT
+Autenticação - Administrador
+
+Entrada:
+{
+  "id": "guid-do-usuario",
+  "nome": "Funcionário Atualizado",
+  "email": "funcionario@sgls.com",
+  "perfil": "Vendedor",
+  "ativo": true
+}
+
+Saída - 200:
+{
+  "message": "Usuário atualizado com sucesso!"
+}
+
+
+Alterar status do usuário
+
+Caminho - /usuarios/{id}/status
+Método - PATCH
+Autenticação - Administrador
+
+Entrada:
+{
+  "ativo": false
+}
+
+Saída - 200:
+{
+  "id": "guid-do-usuario",
+  "ativo": false,
+  "message": "Usuário desativado com sucesso!"
+}
+
+
+Remover usuário
+
+Caminho - /usuarios/{id}
+Método - DELETE
+Autenticação - Administrador
+
+Saída - 200:
+{
+  "message": "Usuário removido com sucesso!"
+}
+
+
+==================================================
+10. IMAGENS
+==================================================
+
+Enviar imagem
+
+Caminho - /images/upload
+Método - POST
+Autenticação - Conforme configuração da API
+
+Entrada:
+multipart/form-data
+
+Campos:
+- File: arquivo da imagem
+- ImageTypeId: número do tipo da imagem
+- OwnerId: GUID do produto ou entidade dona
+
+Saída - 201:
+{
+  "id": "guid-da-imagem",
+  "fileName": "produto.jpg",
+  "contentType": "image/jpeg",
+  "url": "/uploads/produto.jpg",
+  "createdAt": "2026-10-26T12:30:00Z",
+  "ownerId": "guid-do-produto"
+}
+
+
+Listar imagens
+
+Caminho - /images
+Método - GET
+Autenticação - Não exige token
+
+Saída - 200:
+[
+  {
+    "id": "guid-da-imagem",
+    "fileName": "produto.jpg",
+    "contentType": "image/jpeg",
+    "url": "/uploads/produto.jpg",
+    "ownerId": "guid-do-produto"
+  }
+]
+
+
+Listar imagens por vínculo
+
+Caminho - /images/vinculo/{imageTypeId}/{ownerId}
+Método - GET
+Autenticação - Não exige token
+
+Saída - 200:
+[
+  {
+    "id": "guid-da-imagem",
+    "fileName": "produto.jpg",
+    "url": "/uploads/produto.jpg",
+    "ownerId": "guid-do-produto"
+  }
+]
+
+
+Consultar imagem
+
+Caminho - /images/{id}
+Método - GET
+Autenticação - Não exige token
+
+Saída - 200:
+{
+  "id": "guid-da-imagem",
+  "fileName": "produto.jpg",
+  "contentType": "image/jpeg",
+  "url": "/uploads/produto.jpg",
+  "ownerId": "guid-do-produto"
+}
+
+
+Baixar imagem
+
+Caminho - /images/{id}/download
+Método - GET
+Autenticação - Não exige token
+
+Saída:
+Arquivo binário da imagem.
+
+
+Remover imagem
+
+Caminho - /images/{id}
+Método - DELETE
+Autenticação - Conforme configuração da API
+
+Saída - 204:
+Sem conteúdo.
+
+
+==================================================
+11. RELATÓRIOS
+==================================================
+
+Relatório de vendas por período
+
+Caminho - /relatorios/vendas-periodo
+Método - GET
+Autenticação - Administrador ou Vendedor
+
+Entrada:
+Query string opcional:
+
+dataInicio=2026-10-01
+dataFim=2026-10-26
+
+Saída - 200:
+{
+  "dataInicio": "2026-10-01",
+  "dataFim": "2026-10-26",
+  "resumo": {
+    "faturamentoTotal": 5000.00,
+    "totalPedidos": 30,
+    "vendasConcluidas": 25,
+    "vendasCanceladas": 5
+  },
+  "pedidos": [
+    {
+      "id": "guid-do-pedido",
+      "dataPedido": "2026-10-26T12:30:00Z",
+      "status": "Finalizado",
+      "valorTotal": 199.90
+    }
+  ]
+}
+
+
+Dashboard
+
+Caminho - /relatorios/dashboard
+Método - GET
+Autenticação - Administrador ou Vendedor
+
+Saída - 200:
+{
+  "totalProdutos": 100,
+  "totalCategorias": 10,
+  "totalPedidos": 80,
+  "estoqueBaixo": 5,
+  "inicioSemana": "2026-10-20",
+  "fimSemana": "2026-10-26",
+  "vendasDaSemana": [],
+  "distribuicaoPorCategoria": [],
+  "produtosEstoqueBaixo": [],
+  "ultimosPedidos": []
+}
+
+
+==================================================
+12. STATUS HTTP PADRÃO
+==================================================
+
+200 - Operação concluída.
+201 - Registro criado.
+204 - Operação concluída sem conteúdo.
+400 - Dados inválidos ou regra de negócio violada.
+401 - Usuário não autenticado ou token inválido.
+403 - Usuário autenticado sem permissão.
+404 - Registro não encontrado.
+409 - Conflito, como e-mail já cadastrado.
+500 - Erro interno inesperado.
